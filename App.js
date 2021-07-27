@@ -6,107 +6,160 @@
  * @flow strict-local
  */
 
-import React from 'react';
-import type {Node} from 'react';
+import React, { useEffect, useState, useCallback } from 'react'
 import {
+  TouchableHighlight,
   SafeAreaView,
-  ScrollView,
   StatusBar,
   StyleSheet,
+  TextInput,
+  Image,
   Text,
-  useColorScheme,
   View,
-} from 'react-native';
+} from 'react-native'
+import md5 from 'md5'
+import axios from 'axios'
+import _ from 'lodash'
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import config from './src/config'
 
-const Section = ({children, title}): Node => {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
+const hash = md5(config.ts + config.privateKey + config.publicKey)
+
+axios.defaults.params = {
+  ts: config.ts,
+  apikey: config.publicKey,
+  hash,
+}
+
+const App = () => {
+  const [characters, setCharacters] = useState([])
+  const [searchText, setSearchText] = useState('')
+  const [detail, setDetail] = useState({
+    characterInfo: {},
+    data: [],
+  })
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  useEffect(() => {
+    searchCharacter(searchText)
+  }, [searchText])
+
+  const searchCharacter = useCallback(
+    _.debounce(text => {
+      if (text !== '') {
+        getCharacter(text)
+      }
+      if (text === '') {
+        fetchData()
+      }
+    }, 1000),
+    [],
+  )
+
+  const getCharacter = async name => {
+    try {
+      const {
+        data: { data: charactersDataBySearchText },
+      } = await axios.get(
+        'https://gateway.marvel.com:443/v1/public/characters',
+        {
+          params: {
+            nameStartsWith: name,
           },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-};
+        },
+      )
 
-const App: () => Node = () => {
-  const isDarkMode = useColorScheme() === 'dark';
+      setCharacters(charactersDataBySearchText.results)
+    } catch (error) {
+      console.log({ error })
+    }
+  }
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+  async function fetchData() {
+    try {
+      const {
+        data: { data: charactersData },
+      } = await axios.get('https://gateway.marvel.com:443/v1/public/characters')
+
+      setCharacters(charactersData.results)
+    } catch (error) {
+      console.log({ error })
+    }
+  }
+
+  const onPressCharacter = async char => {
+    try {
+      const {
+        comics: { collectionURI },
+      } = char
+
+      const { data: resultDetail } = await axios.get(collectionURI)
+
+      setDetail({
+        characterInfo: char,
+        data: resultDetail.data.results,
+      })
+    } catch (error) {
+      console.log({ error })
+    }
+  }
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.js</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
+    <SafeAreaView>
+      <StatusBar barStyle='light-content' />
+      <View style={styles.header}>
+        <Image
+          resizeMode='contain'
+          source={require('./src/assets/images/marvelLogo.png')}
+          style={styles.headerImage}
+        />
+      </View>
     </SafeAreaView>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  header: {
+    height: 100,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#EC1D24',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  headerImage: {
+    height: '100%',
+    width: 200,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  arrowBack: {
+    position: 'absolute',
+    left: 0,
+    width: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  highlight: {
-    fontWeight: '700',
+  textArrowBack: {
+    color: 'white',
+    fontSize: 40,
   },
-});
+  textInput: {
+    width: '80%',
+    borderBottomWidth: 1,
+    borderBottomColor: '#707070',
+    color: '#000000',
+  },
+  container: {
+    height: '100%',
+    width: '100%',
+  },
+  searchInput: {
+    height: 100,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+})
 
-export default App;
+export default App

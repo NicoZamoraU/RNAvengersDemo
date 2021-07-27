@@ -22,6 +22,8 @@ import axios from 'axios'
 import _ from 'lodash'
 
 import config from './src/config'
+import Characters from './src/components/Characters'
+import CharacterDetail from './src/components/CharacterDetail'
 
 const hash = md5(config.ts + config.privateKey + config.publicKey)
 
@@ -125,6 +127,27 @@ const App = () => {
           style={styles.headerImage}
         />
       </View>
+      {detail.data.length === 0 ? (
+        <View style={styles.container}>
+          <View style={styles.searchInput}>
+            <TextInput
+              style={styles.textInput}
+              placeholderTextColor='#707070'
+              placeholder='Buscar...'
+              onChangeText={setSearchText}
+            />
+          </View>
+          <Characters
+            data={characters}
+            onPressCharacter={char => onPressCharacter(char)}
+          />
+        </View>
+      ) : (
+        <CharacterDetail
+          detailData={detail.data}
+          characterInfo={detail.characterInfo}
+        />
+      )}
     </SafeAreaView>
   )
 }

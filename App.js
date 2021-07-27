@@ -111,6 +111,14 @@ const App = () => {
     <SafeAreaView>
       <StatusBar barStyle='light-content' />
       <View style={styles.header}>
+        {detail.data.length !== 0 && (
+          <TouchableHighlight
+            onPress={() => setDetail({ title: '', data: [] })}
+            style={styles.arrowBack}
+          >
+            <Text style={styles.textArrowBack}>{'<'}</Text>
+          </TouchableHighlight>
+        )}
         <Image
           resizeMode='contain'
           source={require('./src/assets/images/marvelLogo.png')}
